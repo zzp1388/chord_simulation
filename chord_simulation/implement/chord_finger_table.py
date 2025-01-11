@@ -178,9 +178,26 @@ class ChordNode(BaseChordNode):
                 return self.self_node
 
     def _fix_fingers(self):
-        start_id = (self.node_id + 2 ** self.next_finger) % (2 ** M)
-        self.finger_table[self.next_finger][1] = self.find_finger(start_id)
-        self.next_finger = (self.next_finger + 1) % M  # 更新下一个需要更新的finger位置的索引
+        if not self.stability_test_paused:
+            if self.next_finger == 0:
+                self.finger_table[self.next_finger][1] = self.successor
+            elif self.next_finger == 1:
+                conn_next_node = connect_node(self.successor)
+                if conn_next_node:
+                    self.finger_table[self.next_finger][1] = conn_next_node.get_successor()
+                else:
+                    self.finger_table[self.next_finger][1] = None
+            elif self.next_finger == 2:
+                conn_next_node = connect_node(self.successor)
+                conn_next_node = connect_node(conn_next_node.get_successor())
+                if conn_next_node:
+                    self.finger_table[self.next_finger][1] = conn_next_node.get_successor()
+                else:
+                    self.finger_table[self.next_finger][1] = None
+            else:
+                start_id = (self.node_id + 2 ** self.next_finger) % (2 ** M)
+                self.finger_table[self.next_finger][1] = self.find_finger(start_id)
+            self.next_finger = (self.next_finger + 1) % M  # 更新下一个需要更新的finger位置的索引
 
     def _check_predecessor(self):
         pass
@@ -285,18 +302,7 @@ class ChordNode(BaseChordNode):
             finger_node = finger[1]  # 假设 finger 表的第一元素是指向节点对象
             node = connect_node(finger_node)
             if node:
-                new_successor = node.check_predecessor()
-                return new_successor  # 返回第一个存活的后继节点
+                return finger_node  # 返回第一个存活的后继节点
 
         return self.self_node  # 如果没有找到存活的后继节点，返回自身
 
-    def check_predecessor(self):
-        if self.predecessor:
-            node = connect_node(self.predecessor)
-            if node:
-                return node.check_predecessor()
-            else:
-                return self.self_node
-        else:
-            print(f"{self.node_id} has no predecessor defined.")
-            return self.self_node

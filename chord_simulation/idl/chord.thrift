@@ -20,7 +20,6 @@ service ChordNode {
     void update_successor(1: Node successor),
     void pause_stability_tests(),
     void resume_stability_tests(),
-    Node check_predecessor()
 }
 
 enum KVStatus {
