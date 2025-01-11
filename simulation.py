@@ -244,15 +244,20 @@ def window_interaction(client: Client):
         while connect_node(next_node).get_id() != start_id:
             all_node.append(kv_output(next_node))
             next_node = connect_node(next_node).get_successor()
-        draw_chord_circle_with_interactive_nodes(all_node)
+        # draw_chord_circle_with_interactive_nodes(all_node)
+        # 输出 all_node 到 TXT 文件
+        with open('all_nodes_output.txt', 'w') as file:
+            for node_data in all_node:
+                file.write(f"{node_data}\n")
 
     def check():
         right_key = 0
         for i in range(key_nums):
-            client.put(f"key-{i}", f"value-{i}")
             status, key, value, node_id = client.get(f"key-{i}")
             if value == f"value-{i}":
                 right_key += 1
+            else:
+                print(f"key-{i}查找失败")
         right_rate = right_key/key_nums
         output.delete(1.0, tk.END)
         output.insert(tk.END, f"查找准确率为{right_rate}")
