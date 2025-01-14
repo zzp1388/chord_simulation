@@ -244,7 +244,7 @@ def window_interaction(client: Client):
         while connect_node(next_node).get_id() != start_id:
             all_node.append(kv_output(next_node))
             next_node = connect_node(next_node).get_successor()
-        # draw_chord_circle_with_interactive_nodes(all_node)
+        draw_chord_circle_with_interactive_nodes(all_node)
         # 输出 all_node 到 TXT 文件
         with open('all_nodes_output.txt', 'w') as file:
             for node_data in all_node:

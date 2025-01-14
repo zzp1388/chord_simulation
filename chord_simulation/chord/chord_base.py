@@ -14,7 +14,6 @@ thrift_path = os.path.join(current_dir, '../idl/chord.thrift')
 # 加载 Thrift 文件，生成对应的 Python 模块
 chord_thrift = thriftpy2.load(thrift_path, module_name='chord_thrift')
 
-
 class BaseChordNode:
     """
     Chord 节点的基本接口
@@ -173,12 +172,20 @@ def connect_node(node: Node):
     """
     return connect_address(node.address, node.port)  # 通过地址和端口连接节点
 
+def quick_connect(node:Node):
+    try:
+        node = make_client(chord_thrift.ChordNode, node.address, node.port)  # 创建 Thrift 客户端
+        return node  # 返回节点对象
+    except:
+        return None
 
 def is_between(node: Node, node1: Node, node2: Node):
     """
     判断节点是否位于顺时针弧（node1 -> node2）上，包括 node2 但不包括 node1。
     这就像判断节点是否在 (node1, node2] 区间内。
     """
+    if node1 is None or node2 is None:
+        return False
     start_node_id, end_node_id = node1.node_id, node2.node_id  # 获取节点 ID
     if start_node_id < end_node_id:
         return start_node_id < node.node_id <= end_node_id  # 顺时针情况

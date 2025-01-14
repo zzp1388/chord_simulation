@@ -1,4 +1,4 @@
-from ..chord.chord_base import BaseChordNode
+from ..chord.chord_base import BaseChordNode, quick_connect
 from ..chord.chord_base import connect_node, hash_func, is_between
 from ..chord.struct_class import KeyValueResult, Node, KVStatus,M
 
@@ -12,7 +12,6 @@ class ChordNode(BaseChordNode):
         self.kv_store = dict()  # 键值存储
         self.predecessor_kv_store = dict()  # 存储前驱节点的键值对
         self.successor_kv_store = dict()  # 存储后继节点的键值对
-        self.finger_table = [[(self.node_id + 2 ** i) % (2 ** M), None] for i in range(M)] # 赋值在fix_finger中完成
         self.next_finger = 0  # 用于修复finger_table
 
         # 创建节点对象
@@ -20,6 +19,8 @@ class ChordNode(BaseChordNode):
         self.successor = self.self_node  # 后继节点
         self.predecessor = Node(self.node_id, address, port, valid=False)  # 前驱节点
         self.stability_test_paused = False  # 是否开启稳定性测试
+
+        self.finger_table = [[(self.node_id + 2 ** i) % (2 ** M), self.successor] for i in range(M)]
 
         self.logger.info(f'node {self.node_id} listening at {address}:{port}')  # 记录节点信息
 
@@ -46,6 +47,7 @@ class ChordNode(BaseChordNode):
             return self._lookup_local(key)
         else:
             next_node = self._closet_preceding_node(h)
+            # next_node = self.successor
             conn_next_node = connect_node(next_node)
             return conn_next_node.lookup(key)
 
@@ -70,18 +72,41 @@ class ChordNode(BaseChordNode):
 
     def _closet_preceding_node(self, key_id: int) -> Node:
         tmp_key_node = Node(key_id, "", 0)
+        # 检查 tmp_key_node 是否在自身节点（self_node）和后继节点（successor）之间
         if is_between(tmp_key_node, self.self_node, self.successor):
             return self.successor
+        last_connected_node = None  # 记录最后一个成功连接的节点
         for i in range(M - 1, -1, -1):
-            if self.finger_table[i][1] is not None and is_between(self.finger_table[i][1], self.self_node, tmp_key_node):
-                return self.finger_table[i][1]
+            finger_node = self.finger_table[i][1]
+            # 确保节点存在，并且在范围内
+            if finger_node is not None and is_between(finger_node, self.self_node, tmp_key_node):
+                if finger_node != last_connected_node:  # 跳过相邻的冗余节点
+                    node = quick_connect(finger_node)
+                    if node:  # 如果成功连接
+                        return finger_node  # 返回成功连接的节点
+                    last_connected_node = finger_node  # 更新最后一个连接的节点
+        # 如果没有找到可连接的节点，返回后继节点
+        return self.successor
+
+    # def _closet_preceding_node(self, key_id: int) -> Node:
+    #     tmp_key_node = Node(key_id, "", 0)
+    #     if is_between(tmp_key_node, self.self_node, self.successor):
+    #         return self.successor
+    #     for i in range(M - 1, -1, -1):
+    #         if self.finger_table[i][1] is not None and is_between(self.finger_table[i][1], self.self_node,
+    #                                                               tmp_key_node):
+    #             node = connect_node(self.finger_table[i][1])
+    #             if node:
+    #                 return self.finger_table[i][1]
+    #             else:
+    #                 return self.successor
+    #     return self.successor
 
     def put(self, key: str, value: str) -> KeyValueResult:
         h = hash_func(key)  # 计算哈希值
         tmp_key_node = Node(h, "", 0)
-
         # 判断 key 是否在当前节点（self_node）和前驱节点之间
-        if is_between(tmp_key_node, self.predecessor, self.self_node):
+        if is_between(tmp_key_node, self.predecessor, self.self_node) :
             # 在当前节点执行插入
             result = self.do_put(key, value, "self")
 
@@ -93,15 +118,15 @@ class ChordNode(BaseChordNode):
             #         print(f"Stored ({key}, {value}) in predecessor {self.predecessor.node_id}.")
             #     except Exception as e:
             #         print(f"Failed to store in predecessor {self.predecessor.node_id}: {e}")
-            #
-            # # 尝试将副本插入后继节点
-            # if self.successor and self.successor.valid:
-            #     try:
-            #         successor_client = connect_node(self.successor)
-            #         successor_client.do_put(key, value, "predecessor")  # 直接调用 do_put
-            #         print(f"Stored ({key}, {value}) in successor {self.successor.node_id}.")
-            #     except Exception as e:
-            #         print(f"Failed to store in successor {self.successor.node_id}: {e}")
+
+            # 尝试将副本插入后继节点
+            if self.successor and self.successor.valid:
+                try:
+                    successor_client = connect_node(self.successor)
+                    successor_client.do_put(key, value, "predecessor")  # 直接调用 do_put
+                    print(f"Stored ({key}, {value}) in successor {self.successor.node_id}.")
+                except Exception as e:
+                    print(f"Failed to store in successor {self.successor.node_id}: {e}")
 
             return result
 
@@ -115,6 +140,7 @@ class ChordNode(BaseChordNode):
     def do_put(self, key: str, value: str, place: str) -> KeyValueResult:
         # 存储当前节点的数据
         if place == "self":
+            print(f"存储 {key}:{value} 成功")
             self.kv_store[key] = value
         elif place == "predecessor":
             self.predecessor_kv_store[key] = value
@@ -132,6 +158,7 @@ class ChordNode(BaseChordNode):
         # 通知当前节点的前驱节点
         if not self.predecessor.valid or is_between(node, self.predecessor, self.self_node):
             self.predecessor = node
+            print(f"Updating predecessor from {self.predecessor.node_id} to {node.node_id}.")
 
     def _stabilize(self):
         if not self.stability_test_paused:
@@ -140,7 +167,6 @@ class ChordNode(BaseChordNode):
                 if node:
                     try:
                         x = node.get_predecessor()
-
                         # 确保 x 是有效节点
                         if x and is_between(x, self.self_node, self.successor):
                             print(f"Updating successor from {self.successor.node_id} to {x.node_id}.")
@@ -164,19 +190,6 @@ class ChordNode(BaseChordNode):
     def resume_stability_tests(self):
         self.stability_test_paused = False
 
-    def find_finger(self, key_id: int) -> Node:
-        # 查找指定键的后继节点
-        key_id_node = Node(key_id, "", 0)
-        if is_between(key_id_node, self.self_node, self.successor):
-            return self.successor
-        else:
-            next_node = self.successor
-            conn_next_node = connect_node(next_node)
-            if conn_next_node:
-                return conn_next_node.find_finger(key_id)
-            else:
-                return self.self_node
-
     def _fix_fingers(self):
         if not self.stability_test_paused:
             if self.next_finger == 0:
@@ -196,7 +209,7 @@ class ChordNode(BaseChordNode):
                     self.finger_table[self.next_finger][1] = None
             else:
                 start_id = (self.node_id + 2 ** self.next_finger) % (2 ** M)
-                self.finger_table[self.next_finger][1] = self.find_finger(start_id)
+                self.finger_table[self.next_finger][1] = self._closet_preceding_node(start_id)
             self.next_finger = (self.next_finger + 1) % M  # 更新下一个需要更新的finger位置的索引
 
     def _check_predecessor(self):
@@ -205,7 +218,7 @@ class ChordNode(BaseChordNode):
     def update_data(self):
         """周期性更新数据"""
         # 获取前驱节点和后继节点的数据
-        if connect_node(self.predecessor) and connect_node(self.successor):
+        if connect_node(self.predecessor) and connect_node(self.successor) and self.predecessor.node_id != self.node_id:
             predecessor_client = connect_node(self.predecessor)
             kv_pairs1 = predecessor_client.get_all_data("successor")
             successor_client = connect_node(self.successor)
@@ -273,8 +286,8 @@ class ChordNode(BaseChordNode):
         predecessor_client.update_successor(self.successor)
         successor_client.resume_stability_tests()
         predecessor_client.resume_stability_tests()
-        self.predecessor = self.self_node
-        self.successor = self.self_node
+        self.predecessor = None
+        self.successor = None
         self.kv_store.clear()
 
     def update_predecessor(self, predecessor):
@@ -296,6 +309,7 @@ class ChordNode(BaseChordNode):
         successor_client.update_predecessor(self.self_node)
         self.resume_stability_tests()
         successor_client.resume_stability_tests()
+        print("chord环修复成功")
 
     def find_alive_successor(self):
         for finger in self.finger_table:
