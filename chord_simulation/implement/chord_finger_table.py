@@ -88,20 +88,6 @@ class ChordNode(BaseChordNode):
         # 如果没有找到可连接的节点，返回后继节点
         return self.successor
 
-    # def _closet_preceding_node(self, key_id: int) -> Node:
-    #     tmp_key_node = Node(key_id, "", 0)
-    #     if is_between(tmp_key_node, self.self_node, self.successor):
-    #         return self.successor
-    #     for i in range(M - 1, -1, -1):
-    #         if self.finger_table[i][1] is not None and is_between(self.finger_table[i][1], self.self_node,
-    #                                                               tmp_key_node):
-    #             node = connect_node(self.finger_table[i][1])
-    #             if node:
-    #                 return self.finger_table[i][1]
-    #             else:
-    #                 return self.successor
-    #     return self.successor
-
     def put(self, key: str, value: str) -> KeyValueResult:
         h = hash_func(key)  # 计算哈希值
         tmp_key_node = Node(h, "", 0)

@@ -32,45 +32,28 @@ class Client:
         print(f"在 {max_retries} 次尝试后未能存储 {key}:{value}")
         return None
 
-    def get(self, key: str):
+    def get(self, key: str, max_retries=3, delay=2):
         """
          return get_status: str, get_result: k-v, get_node_position: int
         """
-        get_res: KeyValueResult = connect_address(self.address, self.port).lookup(key)
-        status = get_res.status
-        if status == KVStatus.VALID:
-            status = 'valid'
-        elif status == KVStatus.NOT_FOUND:
-            status = 'not_found'
-        else:
-            status = 'else status'
-        return status, get_res.key, get_res.value, get_res.node_id
+        for attempt in range(max_retries):
+            try:
+                node = connect_address(self.address, self.port)
+                get_res: KeyValueResult = node.lookup(key)
+                status = get_res.status
+                if status == KVStatus.VALID:
+                    print(f"查找{key}成功")
+                    status = 'valid'
+                elif status == KVStatus.NOT_FOUND:
+                    status = 'not_found'
+                else:
+                    status = 'else status'
+                return status, get_res.key, get_res.value, get_res.node_id
+            except Exception as e:
+                print(f"第 {attempt + 1} 次尝试失败，错误信息: {e}")
+                time.sleep(delay)  # 等待一段时间后重试
 
-    # def get(self, key: str, max_retries=3, delay=2):
-    #     """
-    #     返回 get_status: str, get_result: k-v, get_node_position: int
-    #     """
-    #
-    #     for attempt in range(max_retries):
-    #         try:
-    #             # 尝试连接到节点并查找键
-    #             node = connect_address(self.address, self.port)
-    #             get_res: KeyValueResult = node.lookup(key)
-    #
-    #             # 判断状态并返回结果
-    #             status = get_res.status
-    #             if status == KVStatus.VALID:
-    #                 return 'valid', get_res.key, get_res.value, get_res.node_id
-    #             elif status == KVStatus.NOT_FOUND:
-    #                 return 'not_found', get_res.key, get_res.value, get_res.node_id
-    #             else:
-    #                 print(f"键 {key} 返回了其他状态: {status}")
-    #                 return 'else status', get_res.key, get_res.value, get_res.node_id
-    #
-    #         except Exception as e:
-    #             print(f"尝试 {attempt + 1} 失败，错误信息: {e}")
-    #             time.sleep(delay)  # 等待一段时间后重试
-    #
-    #     print(f"在 {max_retries} 次尝试后无法获取键: {key}")
-    #     return 'failed', get_res.key, get_res.value, get_res.node_id  # 返回失败状态和无效结果
+        print(f"在 {max_retries} 次尝试后未能查找 {key}:{value}")
+        return None
+
 

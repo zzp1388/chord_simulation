@@ -52,11 +52,13 @@ def build_chord_ring_for_finger_table(num_nodes):
             try:
                 conn_prev = connect_node(nodes[i])
                 conn_prev.join(nodes[0])  # 所有节点加入到第一个节点
+                time.sleep(2)
+                break
             except:
                 time.sleep(2)
 
     logger.info("build chord ring...")
-    time.sleep(5)  # 等待一段时间以确保所有节点都已加入
+    time.sleep(num_nodes)  # 等待一段时间以确保所有节点都已加入
 
 
 def init_data_content(client):
@@ -64,7 +66,7 @@ def init_data_content(client):
     global key_nums
     for i in range(key_nums):
         client.put(f"key-{i}", f"value-{i}")
-        time.sleep(0.5)
+        # time.sleep(0.5)
 
 
 def kv_output(node):
