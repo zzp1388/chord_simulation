@@ -180,6 +180,6 @@ flowchart LR
     52929 --> 9362
 ```
 
-在完成了chord环的构建之后，simulation执行初始测试数据的导入，即导入测试KV Pair, 格式为test-key-i: test-value-i。在导入的过程中，也可以看到不同的ChordNode会定期在日志中打印自己维护的Key-Value信息。
+在完成了chord环的构建之后，simulation执行初始测试数据的导入，即导入测试KV Pair, 格式为key-i: value-i。在导入的过程中，也可以看到不同的ChordNode会定期在日志中打印自己维护的Key-Value信息。
 
 等待测试数据导入之后，就可以在客户端中执行查找，添加数据，添加节点，删除节点等操作了。
