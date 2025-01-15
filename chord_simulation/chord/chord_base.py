@@ -29,35 +29,35 @@ class BaseChordNode:
         self.node_id = 0  # id初始化为0
 
     def lookup(self, key: str) -> KeyValueResult:
-        """查找给定键的值，未实现的抽象方法"""
+        """查找给定键的值"""
         raise NotImplementedError
 
     def _lookup_local(self, key: str) -> KeyValueResult:
-        """本地查找给定键的值，未实现的抽象方法"""
+        """本地查找给定键的值"""
         raise NotImplementedError
 
     def find_successor(self, key_id: int) -> Node:
-        """查找给定键 ID 的后继节点，未实现的抽象方法"""
+        """查找给定键 ID 的后继节点"""
         raise NotImplementedError
 
     def _closet_preceding_node(self, key_id: int) -> Node:
-        """查找给定键 ID 的最近前驱节点，未实现的抽象方法"""
+        """查找给定键 ID 的最近前驱节点"""
         raise NotImplementedError
 
     def put(self, key: str, value: str) -> KeyValueResult:
-        """存储键值对，未实现的抽象方法"""
+        """存储键值对"""
         raise NotImplementedError
 
     def do_put(self, key: str, value: str, place: str) -> KeyValueResult:
-        """存储键值对，未实现的抽象方法"""
+        """本地存储键值对"""
         raise NotImplementedError
 
     def join(self, node: Node):
-        """加入给定节点，未实现的抽象方法"""
+        """加入给定节点"""
         raise NotImplementedError
 
     def _stabilize(self):
-        """稳定性检查，未实现的抽象方法"""
+        """稳定性检查"""
         raise NotImplementedError
 
     def notify(self, node: Node):
@@ -85,10 +85,11 @@ class BaseChordNode:
         return self.node_id
 
     def _log_self(self):
-        """记录当前节点的信息，未实现的抽象方法"""
+        """记录当前节点的信息"""
         raise NotImplementedError
 
-    def is_successor_alive(self):
+    def update_data(self):
+        """更新数据"""
         raise NotImplementedError
 
     def run_periodically(self):
@@ -107,9 +108,6 @@ class BaseChordNode:
         # 重新设置定时器
         self.__timer = threading.Timer(self._interval, self.run_periodically)
         self.__timer.start()  # 启动下一个定时任务
-
-    def migrate_data(self):
-        raise NotImplementedError
 
     def check_and_clean_data(self):
         raise NotImplementedError
@@ -135,8 +133,6 @@ class BaseChordNode:
     def update_successor(self, successor):
         raise NotImplementedError
 
-    def update_data(self):
-        raise NotImplementedError
 
 def hash_func(intput_str) -> int:
     """

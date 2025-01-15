@@ -3,7 +3,6 @@ namespace py chord
 service ChordNode {
     KeyValueResult lookup(1: string key),
     Node find_successor(1: i32 key_id),
-    Node find_finger(1: i32 key_id),
     KeyValueResult put(1: string key, 2: string value),
     KeyValueResult do_put(1: string key, 2: string value, 3: string place),
     void join(1: Node node),
