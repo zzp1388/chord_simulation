@@ -1,2 +1,7 @@
-thriftpy2
-loguru
+thriftpy2~=0.4.20
+loguru~=0.7.2
+psutil~=5.9.6
+future~=1.0.0
+matplotlib~=3.7.1
+numpy~=1.26.1
+mplcursors~=0.6

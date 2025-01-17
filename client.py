@@ -20,13 +20,12 @@ class Client:
                 put_status = put_res.status == KVStatus.VALID
 
                 if put_status:
-                    print(f"存储 {key}:{value} 成功")
                     return put_status, put_res.node_id
                 else:
                     print(f"{key}:{value} 的存储操作在尝试 {attempt + 1} 中失败")
 
             except Exception as e:
-                print(f"第 {attempt + 1} 次尝试失败，错误信息: {e}")
+                print(f"存储{key}:{value}第 {attempt + 1} 次尝试失败，错误信息: {e}")
                 time.sleep(delay)  # 等待一段时间后重试
 
         print(f"在 {max_retries} 次尝试后未能存储 {key}:{value}")
@@ -42,18 +41,18 @@ class Client:
                 get_res: KeyValueResult = node.lookup(key)
                 status = get_res.status
                 if status == KVStatus.VALID:
-                    print(f"查找{key}成功")
                     status = 'valid'
                 elif status == KVStatus.NOT_FOUND:
+                    print(f"查找{key}失败")
                     status = 'not_found'
                 else:
                     status = 'else status'
                 return status, get_res.key, get_res.value, get_res.node_id
             except Exception as e:
-                print(f"第 {attempt + 1} 次尝试失败，错误信息: {e}")
+                print(f"查找{key} 第 {attempt + 1} 次尝试失败，错误信息: {e}")
                 time.sleep(delay)  # 等待一段时间后重试
 
-        print(f"在 {max_retries} 次尝试后未能查找 {key}:{value}")
+        print(f"在 {max_retries} 次尝试后未能查找 {key}")
         return None
 
 

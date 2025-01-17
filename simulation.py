@@ -4,6 +4,7 @@ import argparse
 import traceback
 import subprocess
 import os
+import psutil
 from client import Client
 from loguru import logger
 from chord_simulation.chord.chord_base import connect_node, hash_func
@@ -11,8 +12,10 @@ from chord_simulation.chord.struct_class import Node
 import tkinter as tk
 import matplotlib.pyplot as plt
 import numpy as np
+import math
 import mplcursors
 import matplotlib.font_manager as fm
+
 # 指定中文字体路径，替换为你的字体文件路径
 font_path = 'C:/Windows/Fonts/simhei.ttf'  # Windows系统的路径示例
 # 加载字体
@@ -23,17 +26,44 @@ parser.add_argument('-n', '--num_nodes', type=int, default=3)
 parser.add_argument('-k', '--key_nums', type=int, default=50)
 
 global key_nums,num_nodes,existing_node
+process_info = {}
 
 
 def open_terminal_and_run_command(port):
-    # 获取当前工作目录
+    global process_info
     current_directory = os.getcwd()
 
     # 在此目录下打开命令提示符并运行指定的命令
     command = [
         'cmd', '/c', 'start', 'cmd', '/k', f'cd /d "{current_directory}" & python server.py -p {port}'
     ]
+    # 启动进程
     subprocess.Popen(command)
+    # 保存进程信息，包括 port 和对应的命令
+    if port != 50001:
+        process_info[port] = f"server.py -p {port}"
+
+
+def close_terminal(port):
+    if port in process_info:
+        try:
+            # 遍历所有进程，找到匹配的进程来关闭
+            for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+                # 检查进程名称和命令行参数
+                if proc.info['name'] in ['python.exe', 'pythonw.exe'] and process_info[port] in ' '.join(
+                        proc.info['cmdline']):
+                    proc.terminate()  # 或者使用 proc.kill() 强制关闭
+                    print(f"Closed terminal for port {port}.")
+                    del process_info[port]  # 从列表中删除进程信息
+                    return
+
+            print(f"No matching process found for port {port}.")
+        except psutil.NoSuchProcess:
+            print(f"No process found for port {port}.")
+        except Exception as e:
+            print(f"Error closing process: {e}")
+    else:
+        print(f"No terminal found for port {port}.")
 
 
 def build_chord_ring_for_finger_table(num_nodes):
@@ -42,7 +72,7 @@ def build_chord_ring_for_finger_table(num_nodes):
     # 创建节点并添加到列表中
     for i in range(num_nodes):
         open_terminal_and_run_command(50000 + i + 1)
-        time.sleep(2)
+        time.sleep(0.5)
         node = Node(hash_func(f'localhost:50000{i + 1:02d}'), 'localhost', 50000 + i + 1)
         nodes.append(node)
     existing_node = nodes[0]
@@ -181,8 +211,20 @@ def draw_chord_circle_with_interactive_nodes(nodes, max_width=60):
     plt.show()
 
 
+def random_close_processes(n):
+    if n > len(process_info):
+        print("Not enough processes to close.")
+        return
+
+    # 随机选择 n 个端口
+    selected_ports = random.sample(list(process_info.keys()), n)
+
+    for port in selected_ports:
+        close_terminal(port)  # 使用 provided function close_terminal 关闭进程
+
+
 def window_interaction(client: Client):
-    global existing_node,key_nums
+    global existing_node,key_nums,num_nodes
 
     def search():
         key = search_info1.get()
@@ -264,6 +306,14 @@ def window_interaction(client: Client):
         output.delete(1.0, tk.END)
         output.insert(tk.END, f"查找准确率为{right_rate}")
 
+    def close():
+        try:
+            percentage = int(close_info1.get()) / 100
+        except:
+            percentage = 0.2
+        close_num = math.ceil(percentage * num_nodes)
+        random_close_processes(close_num)
+
     # 创建主窗口
     root = tk.Tk()
     root.title("Chord环模拟")
@@ -298,12 +348,18 @@ def window_interaction(client: Client):
     leave_info2.grid(row=3, column=2)
     leave_button = tk.Button(root, text="开始删除", command=leave, width=10)
     leave_button.grid(row=3, column=3, padx=5)
+    close_text = tk.Label(root, text="节点失效(1-100)", width=20)
+    close_text.grid(row=4, column=0)
+    close_info1 = tk.Entry(root, width=20)
+    close_info1.grid(row=4, column=1, columnspan=2)
+    close_button = tk.Button(root, text="开始关闭", command=close, width=10)
+    close_button.grid(row=4, column=3, padx=5)
     output = tk.Text(root, width=50,height=3)
-    output.grid(row=4, rowspan=2,column=0, columnspan=4, pady=5)
+    output.grid(row=5, rowspan=2,column=0, columnspan=4, pady=5)
     check_button = tk.Button(root, text="查找测试数据", width=50, command=check)
-    check_button.grid(row=7, column=0, columnspan=4, pady=5)
+    check_button.grid(row=8, column=0, columnspan=4, pady=5)
     plt_show = tk.Button(root,text="作图", width=50,command=get_all_data)
-    plt_show.grid(row=8, column=0, columnspan=4, pady=5)
+    plt_show.grid(row=9, column=0, columnspan=4, pady=5)
     # 运行主循环
     root.mainloop()
 
