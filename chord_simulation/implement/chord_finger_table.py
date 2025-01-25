@@ -1,7 +1,7 @@
 from ..chord.chord_base import BaseChordNode, quick_connect
 from ..chord.chord_base import connect_node, hash_func, is_between
 from ..chord.struct_class import KeyValueResult, Node, KVStatus,M
-
+from loguru import logger
 
 class ChordNode(BaseChordNode):
     def __init__(self, address, port):
@@ -101,18 +101,18 @@ class ChordNode(BaseChordNode):
             #     try:
             #         predecessor_client = connect_node(self.predecessor)
             #         predecessor_client.do_put(key, value, "successor")  # 直接调用 do_put
-            #         print(f"Stored ({key}, {value}) in predecessor {self.predecessor.node_id}.")
+            #         logger.info(f"Stored ({key}, {value}) in predecessor {self.predecessor.node_id}.")
             #     except Exception as e:
-            #         print(f"Failed to store in predecessor {self.predecessor.node_id}: {e}")
+            #         logger.info(f"Failed to store in predecessor {self.predecessor.node_id}: {e}")
 
             # # 尝试将副本插入后继节点
             # if self.successor and self.successor.valid:
             #     try:
             #         successor_client = connect_node(self.successor)
             #         successor_client.do_put(key, value, "predecessor")  # 直接调用 do_put
-            #         print(f"Stored ({key}, {value}) in successor {self.successor.node_id}.")
+            #         logger.info(f"Stored ({key}, {value}) in successor {self.successor.node_id}.")
             #     except Exception as e:
-            #         print(f"Failed to store in successor {self.successor.node_id}: {e}")
+            #         logger.info(f"Failed to store in successor {self.successor.node_id}: {e}")
 
             return result
 
@@ -126,7 +126,7 @@ class ChordNode(BaseChordNode):
     def do_put(self, key: str, value: str, place: str) -> KeyValueResult:
         # 存储当前节点的数据
         if place == "self":
-            print(f"存储 {key}:{value} 成功")
+            logger.info(f"存储 {key}:{value} 成功")
             self.kv_store[key] = value
         elif place == "predecessor":
             self.predecessor_kv_store[key] = value
@@ -144,7 +144,7 @@ class ChordNode(BaseChordNode):
         # 通知当前节点的前驱节点
         if not self.predecessor.valid or is_between(node, self.predecessor, self.self_node):
             self.predecessor = node
-            print(f"Updating predecessor from {self.predecessor.node_id} to {node.node_id}.")
+            logger.info(f"Updating predecessor from {self.predecessor.node_id} to {node.node_id}.")
 
     def _stabilize(self):
         if not self.stability_test_paused:
@@ -155,19 +155,19 @@ class ChordNode(BaseChordNode):
                         x = node.get_predecessor()
                         # 确保 x 是有效节点
                         if x and is_between(x, self.self_node, self.successor):
-                            print(f"Updating successor from {self.successor.node_id} to {x.node_id}.")
+                            logger.info(f"Updating successor from {self.successor.node_id} to {x.node_id}.")
                             self.successor = x
                         # 通知后继节点当前节点
                         node.notify(self.self_node)
 
                     except Exception as e:
-                        print(f"An error occurred during stabilization: {e}")
+                        logger.info(f"An error occurred during stabilization: {e}")
                 else:
-                    print(f"Successor {self.successor.node_id} is not reachable.")
+                    logger.info(f"Successor {self.successor.node_id} is not reachable.")
                     self.fix_chord()
                     return
             else:
-                print(f"{self.node_id} has no successor defined.")
+                logger.info(f"{self.node_id} has no successor defined.")
                 return
 
     def pause_stability_tests(self):

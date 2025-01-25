@@ -157,7 +157,7 @@ def connect_address(address, port, max_retries=3, delay=2):
             return node  # 返回节点对象
         except:
             time.sleep(delay)  # 等待一段时间后重试
-    print(f"连接{address}:{port}{max_retries}次失败.")
+    logger.error(f"连接{address}:{port}{max_retries}次失败.")
     return None  # 返回 None
 
 

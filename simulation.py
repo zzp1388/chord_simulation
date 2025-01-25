@@ -53,31 +53,31 @@ def close_terminal(port):
                 if proc.info['name'] in ['python.exe', 'pythonw.exe'] and process_info[port] in ' '.join(
                         proc.info['cmdline']):
                     proc.terminate()  # 或者使用 proc.kill() 强制关闭
-                    print(f"Closed terminal for port {port}.")
+                    logger.info(f"Closed terminal for port {port}.")
                     del process_info[port]  # 从列表中删除进程信息
                     return
 
-            print(f"No matching process found for port {port}.")
+            logger.warning(f"No matching process found for port {port}.")
         except psutil.NoSuchProcess:
-            print(f"No process found for port {port}.")
+            logger.warning(f"No process found for port {port}.")
         except Exception as e:
-            print(f"Error closing process: {e}")
+            logger.warning(f"Error closing process: {e}")
     else:
-        print(f"No terminal found for port {port}.")
+        logger.info(f"No terminal found for port {port}.")
 
 
-def build_chord_ring_for_finger_table(num_nodes):
+def build_chord_ring_for_finger_table(n):
     nodes = []  # 用于存储节点的列表
     global existing_node
     # 创建节点并添加到列表中
-    for i in range(num_nodes):
+    for i in range(n):
         open_terminal_and_run_command(50000 + i + 1)
         time.sleep(0.5)
         node = Node(hash_func(f'localhost:50000{i + 1:02d}'), 'localhost', 50000 + i + 1)
         nodes.append(node)
     existing_node = nodes[0]
     # 连接节点
-    for i in range(1, num_nodes):
+    for i in range(1, n):
         for attempt in range(3):
             try:
                 conn_prev = connect_node(nodes[i])
@@ -88,7 +88,7 @@ def build_chord_ring_for_finger_table(num_nodes):
                 time.sleep(0.5)
 
     logger.info("build chord ring...")
-    time.sleep(num_nodes)  # 等待一段时间以确保所有节点都已加入
+    time.sleep(n)  # 等待一段时间以确保所有节点都已加入
 
 
 def init_data_content(client):
@@ -100,10 +100,9 @@ def init_data_content(client):
 
 def kv_output(node):
     conn_current = connect_node(node)
-    output_data = {}
+    output_data = {'node_id': conn_current.get_id()}
 
     # 获取节点 ID
-    output_data['node_id'] = conn_current.get_id()
 
     # 获取前驱、后继和本地数据
     predecessor_kv_store = conn_current.get_all_data("predecessor")
@@ -183,9 +182,9 @@ def draw_chord_circle_with_interactive_nodes(nodes, max_width=60):
     def on_add(sel):
         index = 0
         id0 = int((sel.target[0]-np.pi/2) * 65536 / (-2 * np.pi))
-        for i in range(len(nodes)):
-            if nodes[i]['node_id'] == id0:
-                index = i
+        for zzp in range(len(nodes)):
+            if nodes[zzp]['node_id'] == id0:
+                index = zzp
                 break
         if 0 <= index < len(nodes):
             node_data = nodes[index]
@@ -212,7 +211,7 @@ def draw_chord_circle_with_interactive_nodes(nodes, max_width=60):
 
 def random_close_processes(n):
     if n > len(process_info):
-        print("Not enough processes to close.")
+        logger.warning("Not enough processes to close.")
         return
 
     # 随机选择 n 个端口
@@ -279,8 +278,7 @@ def window_interaction(client: Client):
             output.insert(tk.END, "> port must be integers.")
 
     def get_all_data():
-        all_node = []
-        all_node.append(kv_output(existing_node))
+        all_node = [kv_output(existing_node)]
         conn_current = connect_node(existing_node)
         start_id = conn_current.get_id()
         next_node = conn_current.get_successor()
@@ -296,14 +294,14 @@ def window_interaction(client: Client):
     def check():
         right_key = 0
         for i in range(key_nums):
-            status, key, value, node_id = client.get(f"key-{i}")
-            if status is None:
-                i -= 1
-                continue
+            while True:  # 使用无限循环不断尝试获取
+                status, key, value, node_id = client.get(f"key-{i}")
+                if status is not None:
+                    break  # 如果获取成功，跳出循环
+
             if value == f"value-{i}":
                 right_key += 1
-            else:
-                print(f"key-{i}查找失败")
+
         right_rate = right_key/key_nums
         output.delete(1.0, tk.END)
         output.insert(tk.END, f"查找准确率为{right_rate}")
@@ -311,8 +309,9 @@ def window_interaction(client: Client):
     def close():
         try:
             percentage = int(close_info1.get()) / 100
-        except:
-            percentage = 0.2
+        except (ValueError, TypeError) as e:  # 捕获特定异常  
+            logger.info(f"输入无效，使用默认值: {e}")  # 可选：记录或打印错误信息  
+            percentage = 0.2  # 设置默认值 
         close_num = math.ceil(percentage * num_nodes)
         random_close_processes(close_num)
 
