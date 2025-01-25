@@ -9,7 +9,7 @@ class Client:
         self.port = port
         self.node = connect_address(address, port)
 
-    def put(self, key: str, value: str, max_retries=3, delay=2):
+    def put(self, key: str, value: str, max_retries=3, delay=1):
         """
         返回 put_status: bool 和 put_node_position: int
         """
@@ -17,21 +17,19 @@ class Client:
             try:
                 node = connect_address(self.address, self.port)
                 put_res: KeyValueResult = node.put(key, value)
-                put_status = put_res.status == KVStatus.VALID
-
-                if put_status:
-                    return put_status, put_res.node_id
-                else:
-                    print(f"{key}:{value} 的存储操作在尝试 {attempt + 1} 中失败")
+                put_status = True if put_res.status == KVStatus.VALID else False
+                print(f"存储{key}:{value}成功")
+                return put_status, put_res.node_id
 
             except Exception as e:
                 print(f"存储{key}:{value}第 {attempt + 1} 次尝试失败，错误信息: {e}")
                 time.sleep(delay)  # 等待一段时间后重试
 
         print(f"在 {max_retries} 次尝试后未能存储 {key}:{value}")
-        return None
+        return None, None
 
-    def get(self, key: str, max_retries=3, delay=2):
+
+    def get(self, key: str, max_retries=3, delay=1):
         """
          return get_status: str, get_result: k-v, get_node_position: int
         """
@@ -53,6 +51,6 @@ class Client:
                 time.sleep(delay)  # 等待一段时间后重试
 
         print(f"在 {max_retries} 次尝试后未能查找 {key}")
-        return None
+        return None, None,None, None
 
 

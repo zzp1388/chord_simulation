@@ -105,14 +105,14 @@ class ChordNode(BaseChordNode):
             #     except Exception as e:
             #         print(f"Failed to store in predecessor {self.predecessor.node_id}: {e}")
 
-            # 尝试将副本插入后继节点
-            if self.successor and self.successor.valid:
-                try:
-                    successor_client = connect_node(self.successor)
-                    successor_client.do_put(key, value, "predecessor")  # 直接调用 do_put
-                    print(f"Stored ({key}, {value}) in successor {self.successor.node_id}.")
-                except Exception as e:
-                    print(f"Failed to store in successor {self.successor.node_id}: {e}")
+            # # 尝试将副本插入后继节点
+            # if self.successor and self.successor.valid:
+            #     try:
+            #         successor_client = connect_node(self.successor)
+            #         successor_client.do_put(key, value, "predecessor")  # 直接调用 do_put
+            #         print(f"Stored ({key}, {value}) in successor {self.successor.node_id}.")
+            #     except Exception as e:
+            #         print(f"Failed to store in successor {self.successor.node_id}: {e}")
 
             return result
 
@@ -177,22 +177,22 @@ class ChordNode(BaseChordNode):
         self.stability_test_paused = False
 
     def _fix_fingers(self):
-        if not self.stability_test_paused:
+        if (not self.stability_test_paused) and quick_connect(self.successor):
             if self.next_finger == 0:
                 self.finger_table[self.next_finger][1] = self.successor
             elif self.next_finger == 1:
-                conn_next_node = connect_node(self.successor)
+                conn_next_node = quick_connect(self.successor)
                 if conn_next_node:
                     self.finger_table[self.next_finger][1] = conn_next_node.get_successor()
                 else:
-                    self.finger_table[self.next_finger][1] = None
+                    self.finger_table[self.next_finger][1] = self.successor
             elif self.next_finger == 2:
-                conn_next_node = connect_node(self.successor)
-                conn_next_node = connect_node(conn_next_node.get_successor())
+                conn_next_node = quick_connect(self.successor)
+                conn_next_node = quick_connect(conn_next_node.get_successor())
                 if conn_next_node:
                     self.finger_table[self.next_finger][1] = conn_next_node.get_successor()
                 else:
-                    self.finger_table[self.next_finger][1] = None
+                    self.finger_table[self.next_finger][1] = self.successor
             else:
                 start_id = (self.node_id + 2 ** self.next_finger) % (2 ** M)
                 self.finger_table[self.next_finger][1] = self._closet_preceding_node(start_id)
@@ -295,7 +295,6 @@ class ChordNode(BaseChordNode):
         successor_client.update_predecessor(self.self_node)
         self.resume_stability_tests()
         successor_client.resume_stability_tests()
-        print("chord环修复成功")
 
     def find_alive_successor(self):
         for finger in self.finger_table:
