@@ -9,7 +9,7 @@ class Client:
         self.port = port
         self.node = connect_address(address, port)
 
-    def put(self, key: str, value: str, max_retries=3, delay=2):
+    def put(self, key: str, value: str, max_retries=3, delay=0.5):
         """
         返回 put_status: bool 和 put_node_position: int
         """
@@ -17,6 +17,9 @@ class Client:
             try:
                 node = connect_address(self.address, self.port)
                 put_res: KeyValueResult = node.put(key, value)
+                # 记录详细的存储结果
+                # logger.info(f"尝试存储结果: key = {key},状态 = {put_res.status}, 节点 ID = {put_res.node_id}")
+
                 put_status = True if put_res.status == KVStatus.VALID else False
                 return put_status, put_res.node_id
 
@@ -26,6 +29,23 @@ class Client:
 
         logger.error(f"在 {max_retries} 次尝试后未能存储 {key}:{value}")
         return None, None
+
+    # def put(self, key: str, value: str):
+    #     """
+    #     返回 put_status: bool 和 put_node_position: int
+    #     """
+    #     try:
+    #         node = connect_address(self.address, self.port)
+    #         put_res: KeyValueResult = node.put(key, value)
+    #         # 记录详细的存储结果
+    #         logger.info(f"尝试存储结果: key = {key},状态 = {put_res.status}, 节点 ID = {put_res.node_id}")
+    #
+    #         put_status = True if put_res.status == KVStatus.VALID else False
+    #         return put_status, put_res.node_id
+    #
+    #     except:
+    #         logger.info(f"尝试存储结果{key}失败")
+    #         return None, None
 
 
     def get(self, key: str, max_retries=3, delay=0.5):

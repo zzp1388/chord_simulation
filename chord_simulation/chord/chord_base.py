@@ -99,7 +99,7 @@ class BaseChordNode:
             self._fix_fingers()  # 修复指针
             self._check_predecessor()  # 检查前驱节点
             self.update_data()  # 更新数据
-            self._log_self()  # 记录当前节点信息
+            # self._log_self()  # 记录当前节点信息
 
         except Exception as e:
             self.logger.warning(e)  # 记录警告信息

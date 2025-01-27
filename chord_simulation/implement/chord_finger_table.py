@@ -47,7 +47,6 @@ class ChordNode(BaseChordNode):
             return self._lookup_local(key)
         else:
             next_node = self._closet_preceding_node(h)
-            # next_node = self.successor
             conn_next_node = connect_node(next_node)
             return conn_next_node.lookup(key)
 
@@ -212,7 +211,6 @@ class ChordNode(BaseChordNode):
             # 原数据与副本取并集
             self.kv_store.update(kv_pairs1)
             self.kv_store.update(kv_pairs2)
-            # self.kv_store.update(self.predecessor_kv_store)  # 应对两个连续节点一起失效的情况
             self.check_and_clean_data()  # 检查本地的键值对是否属于自己
             # 更新后继与前驱中的副本
             successor_client.update_predecessor_kv_store()

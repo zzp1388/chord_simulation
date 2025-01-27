@@ -270,6 +270,7 @@ def window_interaction(client: Client):
             current_node = Node(node_id, address, port)
             conn_current = connect_node(current_node)
             conn_current.leave_network()
+            close_terminal(port)
             output.delete(1.0, tk.END)
             output.insert(tk.END, "删除节点成功")
 
