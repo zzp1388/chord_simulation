@@ -28,11 +28,11 @@ class BaseChordNode:
         self.successor = None  # 后继节点初始化为 None
         self.node_id = 0  # id初始化为0
 
-    def lookup(self, key: str) -> KeyValueResult:
+    def lookup(self, key: str, depth: int) -> tuple:
         """查找给定键的值"""
         raise NotImplementedError
 
-    def _lookup_local(self, key: str) -> KeyValueResult:
+    def _lookup_local(self, key: str,depth: int) -> KeyValueResult:
         """本地查找给定键的值"""
         raise NotImplementedError
 

@@ -40,21 +40,35 @@ class ChordNode(BaseChordNode):
         pre_node_id = self.predecessor.node_id if self.predecessor.valid else "null"
         self.logger.debug(f"{pre_node_id} - {self.node_id} - {self.successor.node_id}")
 
-    def lookup(self, key: str) -> KeyValueResult:
+    # def lookup(self, key: str) -> KeyValueResult:
+    #     h = hash_func(key)
+    #     tmp_key_node = Node(h, "", 0)
+    #     if is_between(tmp_key_node, self.predecessor, self.self_node):
+    #         return self._lookup_local(key)
+    #     else:
+    #         next_node = self._closet_preceding_node(h)
+    #         conn_next_node = connect_node(next_node)
+    #         return conn_next_node.lookup(key)
+
+    def lookup(self, key: str, depth: int = 1) -> tuple:  # Adjust return type to tuple
+        # Increment the depth on each recursive call
         h = hash_func(key)
         tmp_key_node = Node(h, "", 0)
+
+        # Check if the key is within the current node’s range
         if is_between(tmp_key_node, self.predecessor, self.self_node):
-            return self._lookup_local(key)
+            return self._lookup_local(key,depth)  # Return result and current depth
         else:
             next_node = self._closet_preceding_node(h)
             conn_next_node = connect_node(next_node)
-            return conn_next_node.lookup(key)
+            # 递归调用并传递增加的深度
+            return conn_next_node.lookup(key,depth+1)
 
-    def _lookup_local(self, key: str) -> KeyValueResult:
+    def _lookup_local(self, key: str, depth: int) -> KeyValueResult:
         # 在当前节点中查找键对应的值
         result = self.kv_store.get(key, None)
         status = KVStatus.VALID if result is not None else KVStatus.NOT_FOUND
-        return KeyValueResult(key, result, self.node_id, status)
+        return KeyValueResult(key, result, self.node_id, depth,status)
 
     def find_successor(self, key_id: int) -> Node:
         # 查找指定键的后继节点
@@ -132,7 +146,7 @@ class ChordNode(BaseChordNode):
         else:
             self.successor_kv_store[key] = value
 
-        return KeyValueResult(key, value, self.node_id)
+        return KeyValueResult(key, value, self.node_id,0)
 
     def join(self, node: Node):
         # 加入指定节点的Chord网络
@@ -176,18 +190,18 @@ class ChordNode(BaseChordNode):
         self.stability_test_paused = False
 
     def _fix_fingers(self):
-        if (not self.stability_test_paused) and quick_connect(self.successor):
+        if (not self.stability_test_paused) and connect_node(self.successor):
             if self.next_finger == 0:
                 self.finger_table[self.next_finger][1] = self.successor
             elif self.next_finger == 1:
-                conn_next_node = quick_connect(self.successor)
+                conn_next_node = connect_node(self.successor)
                 if conn_next_node:
                     self.finger_table[self.next_finger][1] = conn_next_node.get_successor()
                 else:
                     self.finger_table[self.next_finger][1] = self.successor
             elif self.next_finger == 2:
-                conn_next_node = quick_connect(self.successor)
-                conn_next_node = quick_connect(conn_next_node.get_successor())
+                conn_next_node = connect_node(self.successor)
+                conn_next_node = connect_node(conn_next_node.get_successor())
                 if conn_next_node:
                     self.finger_table[self.next_finger][1] = conn_next_node.get_successor()
                 else:

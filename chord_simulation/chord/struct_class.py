@@ -22,9 +22,9 @@ class KVStatus(chord_thrift.KVStatus):
 
 # 定义 KeyValueResult 类，继承自 Thrift 生成的 KeyValueResult 类
 class KeyValueResult(chord_thrift.KeyValueResult):
-    def __init__(self, key: str, value: str, node_id: int, status: KVStatus = KVStatus.VALID):
+    def __init__(self, key: str, value: str, node_id: int, depth: int, status: KVStatus = KVStatus.VALID):
         # 初始化 KeyValueResult，设置键、值、节点 ID 和状态
-        super().__init__(key, value, node_id, status)
+        super().__init__(key, value, node_id, depth, status)
 
 
 # 定义 Node 类，继承自 Thrift 生成的 Node 类
@@ -32,3 +32,4 @@ class Node(chord_thrift.Node):
     def __init__(self, node_id: int, address: str, port: int, valid: bool = True):
         # 初始化 Node，设置节点 ID、地址、端口和有效性
         super().__init__(node_id, address, port, valid)
+

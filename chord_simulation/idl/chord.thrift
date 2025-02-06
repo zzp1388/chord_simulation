@@ -1,7 +1,7 @@
 namespace py chord
 
 service ChordNode {
-    KeyValueResult lookup(1: string key),
+    KeyValueResult lookup(1: string key, 2: i32 depth),
     Node find_successor(1: i32 key_id),
     KeyValueResult put(1: string key, 2: string value),
     KeyValueResult do_put(1: string key, 2: string value, 3: string place),
@@ -29,7 +29,8 @@ struct KeyValueResult {
     1: string key,
     2: string value,
     3: i32 node_id,
-    4: KVStatus status,
+    4: i32 depth,
+    5: KVStatus status,
 }
 
 struct Node {

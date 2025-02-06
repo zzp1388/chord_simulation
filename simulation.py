@@ -227,7 +227,7 @@ def window_interaction(client: Client):
     def search():
         key = search_info1.get()
         h = hash_func(key)
-        status, key, value, node_id = client.get(key)
+        status, key, value, node_id , depth= client.get(key)
         output.delete(1.0, tk.END)
         output.insert(tk.END, f'> hash func({key}) == {h}, find key in server-{node_id},value == {value} ,get status is {status}.')
 
@@ -294,10 +294,12 @@ def window_interaction(client: Client):
 
     def check():
         right_key = 0
+        routing_path = 0
         for i in range(key_nums):
             while True:  # 使用无限循环不断尝试获取
-                status, key, value, node_id = client.get(f"key-{i}")
+                status, key, value, node_id, depth= client.get(f"key-{i}")
                 if status is not None:
+                    routing_path += depth
                     break  # 如果获取成功，跳出循环
 
             if value == f"value-{i}":
@@ -305,7 +307,7 @@ def window_interaction(client: Client):
 
         right_rate = right_key/key_nums
         output.delete(1.0, tk.END)
-        output.insert(tk.END, f"查找准确率为{right_rate}")
+        output.insert(tk.END, f"查找准确率为{right_rate}, 路由总长度为{routing_path}")
 
     def close():
         try:
