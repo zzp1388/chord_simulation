@@ -217,18 +217,21 @@ class ChordNode(BaseChordNode):
     def update_data(self):
         """周期性更新数据"""
         # 获取前驱节点和后继节点的数据
-        if connect_node(self.predecessor) and connect_node(self.successor) and self.predecessor.node_id != self.node_id:
-            predecessor_client = connect_node(self.predecessor)
-            kv_pairs1 = predecessor_client.get_all_data("successor")
-            successor_client = connect_node(self.successor)
-            kv_pairs2 = successor_client.get_all_data("predecessor")
-            # 原数据与副本取并集
-            self.kv_store.update(kv_pairs1)
-            self.kv_store.update(kv_pairs2)
-            self.check_and_clean_data()  # 检查本地的键值对是否属于自己
-            # 更新后继与前驱中的副本
-            successor_client.update_predecessor_kv_store()
-            predecessor_client.update_successor_kv_store()
+        if self.predecessor.node_id != self.node_id:
+            try:
+                predecessor_client = connect_node(self.predecessor)
+                kv_pairs1 = predecessor_client.get_all_data("successor")
+                successor_client = connect_node(self.successor)
+                kv_pairs2 = successor_client.get_all_data("predecessor")
+                # 原数据与副本取并集
+                self.kv_store.update(kv_pairs1)
+                self.kv_store.update(kv_pairs2)
+                self.check_and_clean_data()  # 检查本地的键值对是否属于自己
+                # 更新后继与前驱中的副本
+                successor_client.update_predecessor_kv_store()
+                predecessor_client.update_successor_kv_store()
+            except:
+                logger.warning("网络质量不佳")
 
     def check_and_clean_data(self):
         """对当前节点的所有数据进行检查，删除不符合条件的数据"""

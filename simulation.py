@@ -313,7 +313,7 @@ def window_interaction(client: Client):
         try:
             percentage = int(close_info1.get()) / 100
         except (ValueError, TypeError) as e:  # 捕获特定异常  
-            logger.info(f"输入无效，使用默认值: {e}")  # 可选：记录或打印错误信息  
+            logger.info(f"输入无效，使用默认值: {e}")  # 可选：记录或打印错误信息
             percentage = 0.2  # 设置默认值 
         close_num = math.ceil(percentage * num_nodes)
         random_close_processes(close_num)
