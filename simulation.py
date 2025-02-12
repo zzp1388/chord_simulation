@@ -373,11 +373,18 @@ def main():
     global key_nums, num_nodes
     key_nums = args.key_nums
     num_nodes = args.num_nodes
+    # 创建节点
     build_chord_ring_for_finger_table(num_nodes)
-
+    # 添加数据
     client = Client("localhost", 50001)
     init_data_content(client)
-    window_interaction(client)
+    # 交互界面
+    while True:
+        port = int(input("请输入端口号："))
+        if port == 0:
+            break
+        client = Client("localhost", port)
+        window_interaction(client)
 
 
 if __name__ == '__main__':

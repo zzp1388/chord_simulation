@@ -2,6 +2,7 @@ from ..chord.chord_base import BaseChordNode, quick_connect
 from ..chord.chord_base import connect_node, hash_func, is_between
 from ..chord.struct_class import KeyValueResult, Node, KVStatus,M
 from loguru import logger
+import time
 
 class ChordNode(BaseChordNode):
     def __init__(self, address, port):
@@ -39,16 +40,6 @@ class ChordNode(BaseChordNode):
 
         pre_node_id = self.predecessor.node_id if self.predecessor.valid else "null"
         self.logger.debug(f"{pre_node_id} - {self.node_id} - {self.successor.node_id}")
-
-    # def lookup(self, key: str) -> KeyValueResult:
-    #     h = hash_func(key)
-    #     tmp_key_node = Node(h, "", 0)
-    #     if is_between(tmp_key_node, self.predecessor, self.self_node):
-    #         return self._lookup_local(key)
-    #     else:
-    #         next_node = self._closet_preceding_node(h)
-    #         conn_next_node = connect_node(next_node)
-    #         return conn_next_node.lookup(key)
 
     def lookup(self, key: str, depth: int = 1) -> tuple:  # Adjust return type to tuple
         # Increment the depth on each recursive call
@@ -217,7 +208,7 @@ class ChordNode(BaseChordNode):
     def update_data(self):
         """周期性更新数据"""
         # 获取前驱节点和后继节点的数据
-        if self.predecessor.node_id != self.node_id:
+        if connect_node(self.successor) and connect_node(self.predecessor) and self.predecessor.node_id != self.node_id:
             try:
                 predecessor_client = connect_node(self.predecessor)
                 kv_pairs1 = predecessor_client.get_all_data("successor")
@@ -311,12 +302,23 @@ class ChordNode(BaseChordNode):
         self.resume_stability_tests()
         successor_client.resume_stability_tests()
 
+    # def find_alive_successor(self):
+    #     for finger in self.finger_table:
+    #         finger_node = finger[1]  # 假设 finger 表的第一元素是指向节点对象
+    #         node = connect_node(finger_node)
+    #         if node:
+    #             return finger_node  # 返回第一个存活的后继节点
+    #
+    #     return self.self_node  # 如果没有找到存活的后继节点，返回自身
+
     def find_alive_successor(self):
         for finger in self.finger_table:
             finger_node = finger[1]  # 假设 finger 表的第一元素是指向节点对象
-            node = connect_node(finger_node)
-            if node:
-                return finger_node  # 返回第一个存活的后继节点
+
+            for attempt in range(3):  # 每个 finger 有 3 次连接重试机会
+                node = connect_node(finger_node)
+                if node:
+                    return finger_node  # 返回第一个存活的后继节点
+                time.sleep(0.5)
 
         return self.self_node  # 如果没有找到存活的后继节点，返回自身
-
